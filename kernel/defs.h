@@ -8,6 +8,7 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
+struct cfs_stats;
 
 // bio.c
 void            binit(void);
@@ -83,7 +84,7 @@ void            printfinit(void);
 
 // proc.c
 int             cpuid(void);
-void            exit(int);
+void            exit(int, char*);
 int             fork(void);
 int             growproc(int);
 void            proc_mapstacks(pagetable_t);
@@ -100,12 +101,22 @@ void            scheduler(void) __attribute__((noreturn));
 void            sched(void);
 void            sleep(void*, struct spinlock*);
 void            userinit(void);
-int             wait(uint64);
+int             wait(uint64, char*);
 void            wakeup(void*);
 void            yield(void);
 int             either_copyout(int user_dst, uint64 dst, void *src, uint64 len);
 int             either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void            procdump(void);
+//task5
+void            set_ps_priority(int);
+struct proc*    min_accumulator(void);
+int             check_run(void);
+void            update_priority_create(void);
+int             set_policy(int);
+//task6
+void            updateFields(void);
+int             set_cfs_priority(int);
+struct cfs_stats* get_cfs_stats(int);
 
 // swtch.S
 void            swtch(struct context*, struct context*);
@@ -147,6 +158,7 @@ void            trapinit(void);
 void            trapinithart(void);
 extern struct spinlock tickslock;
 void            usertrapret(void);
+void            update_accumulator(struct proc*);
 
 // uart.c
 void            uartinit(void);

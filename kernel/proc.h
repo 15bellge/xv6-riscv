@@ -104,4 +104,21 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+  char exit_msg[32];           // Process exit message - task 3
+
+  //task 5 of assignment 1
+  long long accumulator; 
+  int ps_priority;
+
+  //task 6 of assignment 1
+  int cfs_priority;
+  int rtime;                   // run time 
+  int  stime;                  // sleep time
+  int retime;                  // runable time 
 };
+
+//task 7 of assignment 1
+extern int sched_policy;
+/*0 for default
+  1 for priority scheduling
+  2 for CFS with priority decay*/
