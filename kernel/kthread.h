@@ -78,5 +78,5 @@ struct kthread
   int ktid;                      // Process ID
   struct proc *p;                // Pointer to the PCB the thread belongs to
   //don't need lock
-  struct context context;        // Pointer to context
+  struct context *context;        
 };

@@ -10,11 +10,10 @@ struct cpu cpus[NCPU];
 
 struct proc proc[NPROC];
 
-extern int nextktid = 1;
+int nextktid = 1;
 struct spinlock ktid_lock;
 
 void forkret(void);
-static void freekthread(struct kthread *kt);
 
 void kthreadinit(struct proc *p)
 {
@@ -30,7 +29,7 @@ void kthreadinit(struct proc *p)
 
 struct kthread *mykthread()
 {
-    return &mycpu()->kt;
+    return mycpu()->kt;
 }
 
 struct trapframe *get_kthread_trapframe(struct proc *p, struct kthread *kt)
@@ -52,6 +51,7 @@ int allocktid()
 
 struct kthread *allockthread(struct proc *p)
 {
+    printf("in allocthread\n");
     struct kthread *kt;
     for (kt = p->kthread; kt < &p->kthread[NKT]; kt++)
     {
@@ -82,10 +82,15 @@ found:
 
     // Set up new context to start executing at forkret,
     // which returns to user space.
-    memset(&kt->context, 0, sizeof(kt->context));
+    kt->context = (struct context*)kalloc();
+    memset(kt->context, 0, sizeof(struct context));
+    printf("in allocthread after memset\n");
+    printf("kt: %p, context: %p\n", kt, kt->context);
     kt->context->ra = (uint64)forkret;
+    printf("in allocthread ra\n");
     kt->context->sp = kt->kstack + PGSIZE;
-
+    printf("in allocthread before return\n");
+    printf("kt before return: %p\n", kt);
     return kt;
 }
 
