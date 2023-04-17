@@ -211,19 +211,13 @@ uvmcreate()
 // sz must be less than a page.
 void uvmfirst(pagetable_t pagetable, uchar *src, uint sz)
 {
-    printf("in uvmfirst\n");
     char *mem;
-
     if (sz >= PGSIZE)
         panic("uvmfirst: more than a page");
     mem = kalloc();
     memset(mem, 0, PGSIZE);
-    printf("in uvmfirst after memset\n");
     mappages(pagetable, 0, PGSIZE, (uint64)mem, PTE_W | PTE_R | PTE_X | PTE_U);
-    printf("in uvmfirst after mappages\n");
     memmove(mem, src, sz);
-    printf("in uvmfirst after memmove\n");
-    printf("end uvmfirst\n");
 }
 
 // Allocate PTEs and physical memory to grow process from oldsz to

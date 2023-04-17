@@ -133,30 +133,32 @@ allocproc(void)
 found:
     nextktid = 1;
     allockthread(p);
-    // printf("in allocproc after allocthread\n");
-    //    p->pid = allocpid();
-    //    p->state = USED;
+    printf("in allocproc after allocthread\n");
+    p->pid = allocpid();
+    p->state = USED;
 
-    //   // Allocate a trapframe page.
-    //   if((p->base_trapframes = (struct trapframe *)kalloc()) == 0){
-    //     freeproc(p);
-    //     release(&p->lock);
-    //     return 0;
-    //   }
+    // Allocate a trapframe page.
+    if ((p->base_trapframes = (struct trapframe *)kalloc()) == 0)
+    {
+        freeproc(p);
+        release(&p->lock);
+        return 0;
+    }
 
-    //   // An empty user page table.
-    //   p->pagetable = proc_pagetable(p);
-    //   if(p->pagetable == 0){
-    //     freeproc(p);
-    //     release(&p->lock);
-    //     return 0;
-    //   }
+    // An empty user page table.
+    p->pagetable = proc_pagetable(p);
+    if (p->pagetable == 0)
+    {
+        freeproc(p);
+        release(&p->lock);
+        return 0;
+    }
 
-    //   // Set up new context to start executing at forkret,
-    //   // which returns to user space.
-    //   memset(&p->context, 0, sizeof(p->context));
-    //   p->context.ra = (uint64)forkret;
-    //   p->context.sp = p->kstack + PGSIZE;
+    // Set up new context to start executing at forkret,
+    // which returns to user space.
+    // memset(&p->context, 0, sizeof(p->context));
+    // p->context.ra = (uint64)forkret;
+    // p->context.sp = p->kstack + PGSIZE;
 
     // // TODO: delte this after you are done with task 2.2
     // allocproc_help_function(p);
@@ -261,10 +263,12 @@ void userinit(void)
     // allocate one user page and copy initcode's instructions
     // and data into it.
     uvmfirst(p->pagetable, initcode, sizeof(initcode));
-    p->sz = PGSIZE;
     printf("in userinit after uvmfirst\n");
+    p->sz = PGSIZE;
+    printf("in userinit after sz\n");
     // prepare for the very first "return" from kernel to user.
     p->kthread[0].trapframe->epc = 0;     // user program counter
+    printf("in userinit after epc\n");
     p->kthread[0].trapframe->sp = PGSIZE; // user stack pointer
     printf("in userinit before safestrcpy\n");
     safestrcpy(p->name, "initcode", sizeof(p->name));
