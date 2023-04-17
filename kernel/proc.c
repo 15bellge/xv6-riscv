@@ -637,12 +637,12 @@ int kill(int pid)
             // task2
             for (struct kthread *kt = p->kthread; kt < &p->kthread[NKT]; kt++)
             {
-                acquire(&p->kthread->ktstate);
+                acquire(&p->kthread->ktlock);
                 if (kt->ktstate == SLEEPING)
                 {
                     kt->ktstate == RUNNABLE;
                 }
-                release(&p->kthread->ktstate);
+                release(&p->kthread->ktlock);
             }
 
             return 0;
