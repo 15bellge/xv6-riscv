@@ -51,7 +51,7 @@ int allocktid()
 
 struct kthread *allockthread(struct proc *p)
 {
-    printf("in allocthread\n");
+    //printf("in allocthread\n");
     struct kthread *kt;
     for (kt = p->kthread; kt < &p->kthread[NKT]; kt++)
     {
@@ -72,25 +72,20 @@ found:
     kt->ktstate = USED;
 
     // Allocate a trapframe page.
-    // if ((kt->trapframe = (struct trapframe *)kalloc()) == 0)
-    // {
-    //     freekthread(kt);
-    //     release(&kt->ktlock);
-    //     return 0;
-    // }
+    if ((kt->trapframe = (struct trapframe *)kalloc()) == 0)
+    {
+        freekthread(kt);
+        release(&kt->ktlock);
+        return 0;
+    }
     kt->trapframe = get_kthread_trapframe(p, kt);
 
     // Set up new context to start executing at forkret,
     // which returns to user space.
     kt->context = (struct context*)kalloc();
     memset(kt->context, 0, sizeof(struct context));
-    printf("in allocthread after memset\n");
-    printf("kt: %p, context: %p\n", kt, kt->context);
     kt->context->ra = (uint64)forkret;
-    printf("in allocthread ra\n");
     kt->context->sp = kt->kstack + PGSIZE;
-    printf("in allocthread before return\n");
-    printf("kt before return: %p\n", kt);
     return kt;
 }
 
@@ -109,30 +104,3 @@ void freekthread(struct kthread *kt)
     kt->ktxstate = 0;
     kt->ktstate = UNUSED;
 }
-
-// void forkret(void)
-// {
-//     static int first = 1;
-
-//     // Still holding p->lock from scheduler.
-//     release(&myproc()->lock);
-
-//     if (first)
-//     {
-//         // File system initialization must be run in the context of a
-//         // regular process (e.g., because it calls sleep), and thus cannot
-//         // be run from main().
-//         first = 0;
-//         fsinit(ROOTDEV);
-//     }
-
-//     usertrapret();
-// }
-
-// TODO: delte this after you are done with task 2.2
-// void allocproc_help_function(struct proc *p)
-// {
-//     p->kthread->trapframe = get_kthread_trapframe(p, p->kthread);
-
-//     p->context.sp = p->kthread->kstack + PGSIZE;
-// }
