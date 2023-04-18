@@ -50,17 +50,37 @@ struct trapframe {
   /* 280 */ uint64 t6;
 };
 
+// Saved registers for kernel context switches.
+struct context {
+  uint64 ra;
+  uint64 sp;
+
+  // callee-saved
+  uint64 s0;
+  uint64 s1;
+  uint64 s2;
+  uint64 s3;
+  uint64 s4;
+  uint64 s5;
+  uint64 s6;
+  uint64 s7;
+  uint64 s8;
+  uint64 s9;
+  uint64 s10;
+  uint64 s11;
+};
+
 // Per-CPU state.
 struct cpu {
   struct kthread *kt;    // The thread running on this cpu, or null.
-  struct context *context;     // swtch() here to enter scheduler().
+  struct context context;     // swtch() here to enter scheduler().
   int noff;                   // Depth of push_off() nesting.
   int intena;                 // Were interrupts enabled before push_off()?
 };
 
 extern struct cpu cpus[NCPU];
 
-enum state { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
+enum ktstate { KT_UNUSED, KT_USED, KT_SLEEPING, KT_RUNNABLE, KT_RUNNING, KT_ZOMBIE };
 
 struct kthread
 {
@@ -71,12 +91,12 @@ struct kthread
   //task 2
   struct spinlock ktlock;
   //lock must be held
-  enum state ktstate;        // Thread state
+  enum ktstate ktstate;        // Thread state
   void *ktchan;                  // If non-zero, sleeping on chan
   int ktkilled;                  // If non-zero, have been killed
   int ktxstate;                  // Exit status to be returned to parent's wait
   int ktid;                      // Process ID
   struct proc *p;                // Pointer to the PCB the thread belongs to
   //don't need lock
-  struct context *context;        
+  struct context context;        
 };

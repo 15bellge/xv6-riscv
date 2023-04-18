@@ -21,6 +21,10 @@ void kthreadinit(struct proc *p)
 
     for (struct kthread *kt = p->kthread; kt < &p->kthread[NKT]; kt++)
     {
+        initlock(&kt->ktlock, "kthread");
+        kt->ktstate = KT_UNUSED;
+        kt->p = p;
+        printf("kt->p: %p\n", kt->p);
         // WARNING: Don't change this line!
         // get the pointer to the kernel stack of the kthread
         kt->kstack = KSTACK((int)((p - proc) * NKT + (kt - p->kthread)));
@@ -29,6 +33,7 @@ void kthreadinit(struct proc *p)
 
 struct kthread *mykthread()
 {
+    printf("mykthread: %p\n", mycpu()->kt);
     return mycpu()->kt;
 }
 
@@ -56,7 +61,7 @@ struct kthread *allockthread(struct proc *p)
     for (kt = p->kthread; kt < &p->kthread[NKT]; kt++)
     {
         acquire(&kt->ktlock);
-        if (kt->ktstate == UNUSED)
+        if (kt->ktstate == KT_UNUSED)
         {
             goto found;
         }
@@ -69,7 +74,7 @@ struct kthread *allockthread(struct proc *p)
 
 found:
     kt->ktid = allocktid();
-    kt->ktstate = USED;
+    kt->ktstate = KT_USED;
 
     // Allocate a trapframe page.
     if ((kt->trapframe = (struct trapframe *)kalloc()) == 0)
@@ -82,10 +87,10 @@ found:
 
     // Set up new context to start executing at forkret,
     // which returns to user space.
-    kt->context = (struct context*)kalloc();
-    memset(kt->context, 0, sizeof(struct context));
-    kt->context->ra = (uint64)forkret;
-    kt->context->sp = kt->kstack + PGSIZE;
+    //kt->context = (struct context*)kalloc();
+    memset(&kt->context, 0, sizeof(struct context));
+    kt->context.ra = (uint64)forkret;
+    kt->context.sp = kt->kstack + PGSIZE;
     return kt;
 }
 
@@ -102,5 +107,5 @@ void freekthread(struct kthread *kt)
     kt->ktchan = 0;
     kt->ktkilled = 0;
     kt->ktxstate = 0;
-    kt->ktstate = UNUSED;
+    kt->ktstate = KT_UNUSED;
 }
