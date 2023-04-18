@@ -23,8 +23,9 @@ void kthreadinit(struct proc *p)
     {
         initlock(&kt->ktlock, "kthread");
         kt->ktstate = KT_UNUSED;
-        kt->p = p;
-        printf("kt->p: %p\n", kt->p);
+        //mycpu()->kt = kt;
+        kt->p = p;        
+        // printf("kt->p: %p\n", kt->p);
         // WARNING: Don't change this line!
         // get the pointer to the kernel stack of the kthread
         kt->kstack = KSTACK((int)((p - proc) * NKT + (kt - p->kthread)));
@@ -33,8 +34,13 @@ void kthreadinit(struct proc *p)
 
 struct kthread *mykthread()
 {
-    printf("mykthread: %p\n", mycpu()->kt);
-    return mycpu()->kt;
+    push_off();
+    struct cpu *c = mycpu();
+    // printf("cpu: %p\n", c);
+    struct kthread *kt = c->kt; 
+    // printf("mykthread: %p\n", kt);
+    pop_off();
+    return kt;
 }
 
 struct trapframe *get_kthread_trapframe(struct proc *p, struct kthread *kt)
@@ -60,6 +66,7 @@ struct kthread *allockthread(struct proc *p)
     struct kthread *kt;
     for (kt = p->kthread; kt < &p->kthread[NKT]; kt++)
     {
+        printf("acquire &kt->ktlock in allockthread\n");
         acquire(&kt->ktlock);
         if (kt->ktstate == KT_UNUSED)
         {
@@ -67,6 +74,7 @@ struct kthread *allockthread(struct proc *p)
         }
         else
         {
+            printf("release &kt->ktlock 1 in allockthread\n");
             release(&kt->ktlock);
         }
     }
@@ -80,6 +88,7 @@ found:
     if ((kt->trapframe = (struct trapframe *)kalloc()) == 0)
     {
         freekthread(kt);
+        printf("release &kt->ktlock 2 in allockthread\n");
         release(&kt->ktlock);
         return 0;
     }
