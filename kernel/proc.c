@@ -776,13 +776,16 @@ void wakeup(void *chan)
         // printf("in wakeup in for\n");
         if (kt != mykthread())
         {
-            // printf("in wakeup in first if\n");
+            //printf("in wakeup in first if\n");
+            //printf("acquire &kt->ktlock in wakeup\n");
             acquire(&kt->ktlock);
             if (kt->ktstate == KT_SLEEPING && kt->ktchan == chan)
             {
-                // printf("in wakeup in second if\n");
+                printf("waking up\n");
+                //printf("in wakeup in second if\n");
                 kt->ktstate = KT_RUNNABLE;
             }
+            //printf("release &kt->ktlock in wakeup\n");
             release(&kt->ktlock);
         }
     }
