@@ -12,7 +12,7 @@ sys_exit(void)
     int n;
     argint(0, &n);
     char msg[32];                // task3
-    argstr(1, msg, strlen(msg)); // task3
+    argstr(1, msg, sizeof(msg)); // task3
     exit(n, msg);
     return 0; // not reached
 }
@@ -34,9 +34,9 @@ sys_wait(void)
 {
     uint64 p;
     argaddr(0, &p);
-    char msg[32];                // task3
-    argstr(1, msg, strlen(msg)); // task3
-    return wait(p, msg);
+    uint64 msg;       // task3
+    argaddr(1, &msg); // task3
+    return wait(p, (char *)msg);
 }
 
 uint64

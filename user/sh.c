@@ -168,7 +168,8 @@ main(void)
     if(fork1() == 0)
       runcmd(parsecmd(buf));
     char buff[32];  
-    wait(0, buf);
+    //printf("message address: %p\n", buff);
+    wait(0, buff);
     printf("%s\n", buff);
   }
   exit(0, "");

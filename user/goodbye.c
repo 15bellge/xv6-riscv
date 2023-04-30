@@ -2,8 +2,9 @@
 #include "kernel/stat.h"
 #include "user/user.h"
 
-int main(int argc, char *argv[])
+int main()
 {
+    //char buf[32] = "Goodbye World xv6";
     exit(0, "Goodbye World xv6");
 }
 

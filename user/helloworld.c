@@ -4,4 +4,5 @@
 
 void main(){
     printf("Hello World xv6\n");
+    exit(0, "");
 }

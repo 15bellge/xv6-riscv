@@ -485,6 +485,7 @@ void exit(int status, char *msg)
 // Return -1 if this process has no children.
 int wait(uint64 addr, char *msg)
 {
+    //printf("in wait, addr: %d, msg: %p 'end'\n", addr, msg);
     struct proc *pp;
     int havekids, pid;
     struct proc *p = myproc();
@@ -517,7 +518,8 @@ int wait(uint64 addr, char *msg)
                     freeproc(pp);
                     release(&pp->lock);
                     release(&wait_lock);
-                    safestrcpy(p->exit_msg, pp->exit_msg, sizeof(p->exit_msg)); // task3
+                    
+                    copyout(p->pagetable, (uint64)msg, pp->exit_msg, sizeof(p->exit_msg));
                     return pid;
                 }
                 release(&pp->lock);
