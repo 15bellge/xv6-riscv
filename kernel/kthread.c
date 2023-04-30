@@ -23,9 +23,9 @@ void kthreadinit(struct proc *p)
     {
         initlock(&kt->ktlock, "kthread");
         kt->ktstate = KT_UNUSED;
-        //mycpu()->kt = kt;
-        kt->p = p;        
-        // printf("kt->p: %p\n", kt->p);
+
+        kt->p = p;      
+        printf("in kthreadinit kt->p: %p\n", kt->p);
         // WARNING: Don't change this line!
         // get the pointer to the kernel stack of the kthread
         kt->kstack = KSTACK((int)((p - proc) * NKT + (kt - p->kthread)));
@@ -35,10 +35,7 @@ void kthreadinit(struct proc *p)
 struct kthread *mykthread()
 {
     push_off();
-    struct cpu *c = mycpu();
-    // printf("cpu: %p\n", c);
-    struct kthread *kt = c->kt; 
-    // printf("mykthread: %p\n", kt);
+    struct kthread *kt = mycpu()->kt;
     pop_off();
     return kt;
 }
@@ -108,9 +105,9 @@ found:
 // kt->ktlock must be held.
 void freekthread(struct kthread *kt)
 {
-    kt->kstack = 0;
-    if (kt->trapframe)
-        kfree((void *)kt->trapframe);
+    //kt->kstack = 0;
+    // if (kt->trapframe)
+    //     kfree((void *)kt->trapframe);
     kt->trapframe = 0;
     kt->ktid = 0;
     kt->ktchan = 0;
