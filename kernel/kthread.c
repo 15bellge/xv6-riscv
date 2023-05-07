@@ -25,7 +25,7 @@ void kthreadinit(struct proc *p)
         kt->ktstate = KT_UNUSED;
 
         kt->p = p;      
-        printf("in kthreadinit kt->p: %p\n", kt->p);
+        // printf("in kthreadinit kt->p: %p\n", kt->p);
         // WARNING: Don't change this line!
         // get the pointer to the kernel stack of the kthread
         kt->kstack = KSTACK((int)((p - proc) * NKT + (kt - p->kthread)));
@@ -49,9 +49,11 @@ int allocktid()
 {
     int tid;
 
+    printf("acquire &kt->ktlock in allocktid\n");
     acquire(&ktid_lock);
     tid = nextktid;
     nextktid = nextktid + 1;
+    printf("realease &kt->ktlock in allocktid\n");
     release(&ktid_lock);
 
     return tid;
