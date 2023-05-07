@@ -359,10 +359,10 @@ int fork(void)
 
     // task2
     printf("acquire &np->kthread[0].ktlock in fork\n");
-    /////acquire(&np->kthread[0].ktlock);
+    acquire(&np->kthread[0].ktlock);
     np->kthread[0].ktstate = KT_RUNNABLE;
-    //printf("release &np->kthread[0].ktlock in fork\n");
-    //release(&np->kthread[0].ktlock);
+    printf("release &np->kthread[0].ktlock in fork\n");
+    release(&np->kthread[0].ktlock);
 
     printf("release &np->lock 2 in fork\n");
     release(&np->lock);
