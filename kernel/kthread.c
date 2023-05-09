@@ -49,11 +49,11 @@ int allocktid()
 {
     int tid;
 
-    printf("acquire &kt->ktlock in allocktid\n");
+    printf("acquire &ktid_lock: %p in allocktid\n", &ktid_lock);
     acquire(&ktid_lock);
     tid = nextktid;
     nextktid = nextktid + 1;
-    printf("realease &kt->ktlock in allocktid\n");
+    printf("realease &ktid_lock: %p in allocktid\n", &ktid_lock);
     release(&ktid_lock);
 
     return tid;
@@ -61,11 +61,11 @@ int allocktid()
 
 struct kthread *allockthread(struct proc *p)
 {
-    //printf("in allocthread\n");
+    // printf("in allocthread\n");
     struct kthread *kt;
     for (kt = p->kthread; kt < &p->kthread[NKT]; kt++)
     {
-        printf("acquire &kt->ktlock in allockthread\n");
+        printf("acquire &kt->ktlock: %p in allockthread\n", &kt->ktlock);
         acquire(&kt->ktlock);
         if (kt->ktstate == KT_UNUSED)
         {
@@ -73,7 +73,7 @@ struct kthread *allockthread(struct proc *p)
         }
         else
         {
-            printf("release &kt->ktlock 1 in allockthread\n");
+            printf("release 1 &kt->ktlock: %p in allockthread\n", &kt->ktlock);
             release(&kt->ktlock);
         }
     }
@@ -87,7 +87,7 @@ found:
     if ((kt->trapframe = (struct trapframe *)kalloc()) == 0)
     {
         freekthread(kt);
-        printf("release &kt->ktlock 2 in allockthread\n");
+        printf("release 2 &kt->ktlock: %p in allockthread\n", &kt->ktlock);
         release(&kt->ktlock);
         return 0;
     }
