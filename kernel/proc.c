@@ -608,7 +608,6 @@ int kill(int pid)
                 }
                 release(&p->kthread->ktlock);
             }
-
             return 0;
         }
         release(&p->lock);
@@ -630,16 +629,6 @@ int killed(struct proc *p)
     acquire(&p->lock);
     k = p->killed;
     release(&p->lock);
-    return k;
-}
-
-int kt_killed(struct kthread *kt)
-{
-    int k;
-
-    acquire(&kt->ktlock);
-    k = kt->ktkilled;
-    release(&kt->ktlock);
     return k;
 }
 

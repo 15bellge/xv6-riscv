@@ -115,10 +115,13 @@ struct trapframe*   get_kthread_trapframe(struct proc *, struct kthread*);
 int                 allocktid();
 struct kthread*     allockthread(struct proc *);
 void                freekthread(struct kthread *);
-
-
-// TODO: delte this after you are done with task 2.2
-//void allocproc_help_function(struct proc *p);
+int                 kthread_create(void*, void*, uint);
+int                 kthread_id(void);
+int                 kthread_kill(int);
+void                kthread_setkilled(struct kthread*);
+int                 kthread_killed(struct kthread*);
+int                 kthread_exit(int);
+int                 kthread_join(int, int);
 
 // swtch.S
 void            swtch(struct context*, struct context*);
@@ -200,3 +203,6 @@ void            virtio_disk_intr(void);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
+
+// stack size of thread
+#define STACK_SIZE 4000

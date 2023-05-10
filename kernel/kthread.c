@@ -50,7 +50,7 @@ int allocktid()
 
     acquire(&ktid_lock);
     tid = nextktid;
-    nextktid = nextktid + 1;    
+    nextktid = nextktid + 1;
     release(&ktid_lock);
 
     return tid;
@@ -88,7 +88,6 @@ found:
 
     // Set up new context to start executing at forkret,
     // which returns to user space.
-    //kt->context = (struct context*)kalloc();
     memset(&kt->context, 0, sizeof(struct context));
     kt->context.ra = (uint64)forkret;
     kt->context.sp = kt->kstack + PGSIZE;
@@ -106,4 +105,75 @@ void freekthread(struct kthread *kt)
     kt->ktkilled = 0;
     kt->ktxstate = 0;
     kt->ktstate = KT_UNUSED;
+}
+
+int kthread_create(void *(*start_func)(), void *stack, uint stack_size)
+{
+    struct proc *p = myproc();
+    struct kthread *nkt;
+
+    if ((nkt = allocthread()) == 0)
+    {
+        return -1;
+    }
+
+    acquire(&nkt->ktlock);
+    nkt->ktstate = KT_RUNNABLE;
+    release(&nkt->ktlock);
+
+    nkt->trapframe->epc = start_func;     // user program counter
+    nkt->trapframe->sp = stack;           // user stack pointer
+
+    return nkt->ktid;
+}
+
+int kthread_kill(int ktid)
+{
+    struct proc *p;
+    struct kthread *kt;
+
+    for (p = proc; p < &proc[NPROC]; p++)
+    {
+        for (kt = p->kthread; kt < &p->kthread[NKT]; kt++)
+        {
+            acquire(&kt->ktlock);
+            if (kt->ktid == ktid)
+            {
+                kt->ktkilled = 1;
+                if (kt->ktstate == KT_SLEEPING)
+                {
+                    kt->ktstate = KT_RUNNABLE;
+                }
+            }
+            release(&kt->ktlock);
+            return 0;
+        }
+    }
+    return -1;
+}
+
+void kthread_setkilled(struct kthread *kt)
+{
+    acquire(&kt->ktlock);
+    kt->ktkilled = 1;
+    release(&kt->ktlock);
+}
+
+int kthread_killed(struct kthread *kt)
+{
+    int k;
+
+    acquire(&kt->ktlock);
+    k = kt->ktkilled;
+    release(&kt->ktlock);
+    return k;
+}
+
+int kthread_exit(int status)
+{
+    struct kthread *kt = mykthread();
+}
+
+int kthread_join(int ktid, int status)
+{
 }
