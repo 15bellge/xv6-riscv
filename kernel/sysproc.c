@@ -5,7 +5,6 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
-#include "kthread.h"
 
 uint64
 sys_exit(void)
@@ -95,12 +94,12 @@ sys_uptime(void)
 
 uint64 sys_kthread_create(void)
 {
-    char *func;
-    char *stack;
+    void *func;
+    void *stack;
     int stacksize;
 
-    argstr(0, &func, sizeof(func));
-    argstr(1, &stack, sizeof(stack));
+    argstr(0, (char*)&func, sizeof(void*));
+    argstr(1, (char*)&stack, sizeof(void*));
     argint(2, &stacksize);
     return kthread_create(func, stack, stacksize);
 }
@@ -123,7 +122,8 @@ uint64 sys_kthread_exit(void)
     int ktstatus;
 
     argint(0, &ktstatus);
-    return kthread_exit(ktstatus);
+    kthread_exit(ktstatus);
+    return 0;
 }
 
 uint64 sys_kthread_join(void)

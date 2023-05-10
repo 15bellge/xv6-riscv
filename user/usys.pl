@@ -37,8 +37,8 @@ entry("sbrk");
 entry("sleep");
 entry("uptime");
 #task 2.3
-entry("kthread create");
-entry("kthread id");
-entry("kthread kill");
-entry("kthread exit");
-entry("kthread join");
+entry("kthread_create");
+entry("kthread_id");
+entry("kthread_kill");
+entry("kthread_exit");
+entry("kthread_join");

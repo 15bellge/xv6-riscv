@@ -13,6 +13,8 @@ struct proc proc[NPROC];
 int nextktid = 1;
 struct spinlock ktid_lock;
 
+struct spinlock kthread_wait_lock;
+
 void forkret(void);
 
 void kthreadinit(struct proc *p)
@@ -112,7 +114,7 @@ int kthread_create(void *(*start_func)(), void *stack, uint stack_size)
     struct proc *p = myproc();
     struct kthread *nkt;
 
-    if ((nkt = allocthread()) == 0)
+    if ((nkt = allockthread(p)) == 0)
     {
         return -1;
     }
@@ -121,8 +123,8 @@ int kthread_create(void *(*start_func)(), void *stack, uint stack_size)
     nkt->ktstate = KT_RUNNABLE;
     release(&nkt->ktlock);
 
-    nkt->trapframe->epc = start_func;     // user program counter
-    nkt->trapframe->sp = stack;           // user stack pointer
+    nkt->trapframe->epc = (uint64)start_func;          
+    nkt->trapframe->sp = (uint64)(stack + stack_size - 1);
 
     return nkt->ktid;
 }
@@ -169,11 +171,64 @@ int kthread_killed(struct kthread *kt)
     return k;
 }
 
-int kthread_exit(int status)
+void kthread_exit(int status)
 {
-    struct kthread *kt = mykthread();
+    struct kthread *mkt = mykthread();
+    struct proc *p = mkt->p;
+    
+    acquire(&mkt->ktlock);
+    mkt->ktstate = KT_ZOMBIE;
+    mkt->ktxstate = status;
+    release(&mkt->ktlock);
+
+    int counter = 0;
+    for (struct kthread *kt = p->kthread; kt < &p->kthread[NKT]; kt++)
+    {
+        acquire(&kt->ktlock);
+        if (kt->ktstate == KT_ZOMBIE || kt->ktstate == KT_UNUSED)
+        {
+            counter++;
+        }
+        release(&kt->ktlock);
+    }
+    if (counter == NKT - 1)
+    {
+        exit(status);
+    }
 }
 
 int kthread_join(int ktid, int status)
 {
+    struct kthread *mkt = mykthread();
+    struct proc *p = mkt->p;
+    acquire(&kthread_wait_lock);
+
+    for (;;)
+    {
+        for (struct kthread *kt = p->kthread; kt < &p->kthread[NKT]; kt++)
+        {
+            acquire(&kt->ktlock);
+            if (kt->ktid == ktid && kt->ktstate == KT_ZOMBIE)
+            {
+                if (status != 0 && copyout(p->pagetable, status, (char *)&kt->ktxstate,
+                                           sizeof(kt->ktxstate)) < 0)
+                {
+                    release(&kt->ktlock);
+                    release(&kthread_wait_lock);
+                    return -1;
+                }
+                freekthread(kt);
+                release(&kt->ktlock);
+                release(&kthread_wait_lock);
+                return ktid;
+            }
+            release(&kt->ktlock);
+            if(kthread_killed(kt)){
+                release(&kthread_wait_lock);
+                return -1;
+            }
+        }
+        sleep(mkt, &kthread_wait_lock);
+        return 0;
+    }
 }

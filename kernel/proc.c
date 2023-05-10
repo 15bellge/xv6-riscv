@@ -315,7 +315,7 @@ int fork(void)
     safestrcpy(np->name, p->name, sizeof(p->name));
 
     pid = np->pid;
-    
+
     np->kthread[0].ktstate = KT_RUNNABLE;
     release(&np->kthread[0].ktlock);
     release(&np->lock);
@@ -349,10 +349,23 @@ void reparent(struct proc *p)
 void exit(int status)
 {
     struct proc *p = myproc();
+    struct kthread *mkt = mykthread();
 
     if (p == initproc)
         panic("init exiting");
 
+    for (struct kthread *kt = p->kthread; kt < &p->kthread[NKT]; kt++)
+    {
+        if (&kt != &mkt)
+        {
+            acquire(&kt->ktlock);
+            int ktid = kt->ktid;
+            release(&kt->ktlock);
+            kthread_kill(ktid);
+            kthread_join(ktid, status);
+        }
+    }
+    
     // Close all open files.
     for (int fd = 0; fd < NOFILE; fd++)
     {
@@ -429,7 +442,7 @@ int wait(uint64 addr)
                     return pid;
                 }
                 release(&pp->lock);
-            }                       
+            }
         }
 
         // No point waiting if we don't have any children.
