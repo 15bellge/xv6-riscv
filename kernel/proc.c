@@ -85,28 +85,15 @@ mycpu(void)
 struct proc *
 myproc(void)
 {
-    // printf("in myproc\n");
-    // push_off();
-    // struct cpu *c = mycpu();
-    // printf("c: %p\n", c);
-    // struct kthread *kt = mykthread();
-    // printf("kt: %p\n", kt);
-    // struct proc *p = kt->p;
-    // printf("p: %p\n", p);
-    // pop_off();
-    // return p;
     return mykthread()->p;
 }
 
 int allocpid()
 {
-    // printf("in allocpid\n");
     int pid;
-    printf("acquire &pid_lock: %p in allockpid\n", &pid_lock);
     acquire(&pid_lock);
     pid = nextpid;
     nextpid = nextpid + 1;
-    printf("release &pid_lock: %p in allockpid\n", &pid_lock);
     release(&pid_lock);
 
     return pid;
@@ -119,12 +106,10 @@ int allocpid()
 static struct proc *
 allocproc(void)
 {
-    // printf("in allocproc\n");
     struct proc *p;
 
     for (p = proc; p < &proc[NPROC]; p++)
     {
-        printf("acquire &p->lock: %p in allocproc\n", &p->lock);
         acquire(&p->lock);
         if (p->state == UNUSED)
         {
@@ -132,14 +117,12 @@ allocproc(void)
         }
         else
         {
-            printf("release 1 &p->lock: %p in allocproc\n", &p->lock);
             release(&p->lock);
         }
     }
     return 0;
 
 found:
-    // printf("in allocproc after allocthread\n");
     p->pid = allocpid();
     p->state = USED;
 
@@ -147,7 +130,6 @@ found:
     if ((p->base_trapframes = (struct trapframe *)kalloc()) == 0)
     {
         freeproc(p);
-        printf("release 2 &p->lock: %p in allocproc\n", &p->lock);
         release(&p->lock);
         return 0;
     }
@@ -157,22 +139,10 @@ found:
     if (p->pagetable == 0)
     {
         freeproc(p);
-        printf("release 3 &p->lock: %p in allocproc\n", &p->lock);
         release(&p->lock);
         return 0;
     }
 
-    // Set up new context to start executing at forkret,
-    // which returns to user space.
-    // memset(&p->context, 0, sizeof(p->context));
-    // p->context.ra = (uint64)forkret;
-    // p->context.sp = p->kstack + PGSIZE;
-
-    // // TODO: delte this after you are done with task 2.2
-    // allocproc_help_function(p);
-    // printf("in allocproc before return\n");
-    // task2
-    // nextktid = 1;
     allockthread(p);
 
     return p;
@@ -184,7 +154,6 @@ found:
 static void
 freeproc(struct proc *p)
 {
-    // printf("in freeproc\n");
     for (struct kthread *kt = p->kthread; kt < &p->kthread[NKT]; kt++)
     {
         freekthread(kt);
@@ -210,7 +179,6 @@ freeproc(struct proc *p)
 pagetable_t
 proc_pagetable(struct proc *p)
 {
-    // printf("in proc_pagetable\n");
     pagetable_t pagetable;
 
     // An empty page table.
@@ -246,7 +214,6 @@ proc_pagetable(struct proc *p)
 // physical memory it refers to.
 void proc_freepagetable(pagetable_t pagetable, uint64 sz)
 {
-    // printf("in proc_freepagetable\n");
     uvmunmap(pagetable, TRAMPOLINE, 1, 0);
     uvmunmap(pagetable, TRAPFRAME(0), 1, 0);
     uvmfree(pagetable, sz);
@@ -267,11 +234,9 @@ uchar initcode[] = {
 // Set up first user process.
 void userinit(void)
 {
-    // printf("in userinit\n");
     struct proc *p;
 
     p = allocproc();
-    // printf("in userinit after allocproc\n");
     initproc = p;
     // allocate one user page and copy initcode's instructions
     // and data into it.
@@ -282,22 +247,16 @@ void userinit(void)
     safestrcpy(p->name, "initcode", sizeof(p->name));
     p->cwd = namei("/");
 
-    // p->state = RUNNABLE;
-    // printf("in userinit before task 2\n");
     // task2
     p->kthread[0].ktstate = KT_RUNNABLE;
-    printf("release &p->kthread[0].ktlock: %p in userinit\n", &p->kthread[0].ktlock);
     release(&p->kthread[0].ktlock);
-    printf("release &p->lock: %p in userinit\n", &p->lock);
     release(&p->lock);
-    // printf("in userinit end\n");
 }
 
 // Grow or shrink user memory by n bytes.
 // Return 0 on success, -1 on failure.
 int growproc(int n)
 {
-    // printf("in growproc\n");
     uint64 sz;
     struct proc *p = myproc();
 
@@ -321,7 +280,6 @@ int growproc(int n)
 // Sets up child kernel stack to return as if from fork() system call.
 int fork(void)
 {
-    // printf("in fork\n");
     int i, pid;
     struct proc *np;
     struct proc *p = myproc();
@@ -337,7 +295,6 @@ int fork(void)
     if (uvmcopy(p->pagetable, np->pagetable, p->sz) < 0)
     {
         freeproc(np);
-        printf("release 1 &np->lock: %p in fork\n", &np->lock);
         release(&np->lock);
         return -1;
     }
@@ -360,14 +317,11 @@ int fork(void)
     pid = np->pid;
     
     np->kthread[0].ktstate = KT_RUNNABLE;
-    printf("release &np->kthread[0].ktlock: %p in fork 1\n", &np->kthread[0].ktlock);
     release(&np->kthread[0].ktlock);
-    printf("release 2 &np->lock: %p in fork\n", &np->lock);
     release(&np->lock);
-    printf("acquire &wait_lock: %p in fork\n", &wait_lock);
+
     acquire(&wait_lock);
     np->parent = p;
-    printf("release &wait_lock: %p in fork\n", &wait_lock);
     release(&wait_lock);
 
     return pid;
@@ -377,7 +331,6 @@ int fork(void)
 // Caller must hold wait_lock.
 void reparent(struct proc *p)
 {
-    // printf("in reparent\n");
     struct proc *pp;
 
     for (pp = proc; pp < &proc[NPROC]; pp++)
@@ -395,7 +348,6 @@ void reparent(struct proc *p)
 // until its parent calls wait().
 void exit(int status)
 {
-    // printf("in exit\n");
     struct proc *p = myproc();
 
     if (p == initproc)
@@ -416,29 +368,22 @@ void exit(int status)
     iput(p->cwd);
     end_op();
     p->cwd = 0;
-    printf("acquire &wait_lock: %p in exit\n", &wait_lock);
     acquire(&wait_lock);
 
     // Give any children to init.
     reparent(p);
 
     // Parent might be sleeping in wait().
-    // wakeup(p->parent);
     wakeup(p->parent->kthread);
-    printf("acquire &p->lock: %p in exit\n", &p->lock);
     acquire(&p->lock);
     p->xstate = status;
     p->state = ZOMBIE;
-    printf("release &p->lock: %p in exit\n", &p->lock);
     release(&p->lock);
 
     // task2
-    printf("acquire &p->kthread->ktlock: %p in exit\n", &p->kthread->ktlock);
     acquire(&p->kthread->ktlock);
     p->kthread->ktstate = KT_ZOMBIE;
-    // release(&p->kthread->ktlock);
 
-    printf("release &wait_lock: %p in exit\n", &wait_lock);
     release(&wait_lock);
 
     // Jump into the scheduler, never to return.
@@ -450,12 +395,9 @@ void exit(int status)
 // Return -1 if this process has no children.
 int wait(uint64 addr)
 {
-    // printf("in wait\n");
     struct proc *pp;
-    // struct kthread *kt;
     int havekids, pid;
     struct proc *p = myproc();
-    printf("acquire &wait_lock: %p in wait\n", &wait_lock);
     acquire(&wait_lock);
 
     for (;;)
@@ -464,21 +406,9 @@ int wait(uint64 addr)
         havekids = 0;
         for (pp = proc; pp < &proc[NPROC]; pp++)
         {
-            // for (kt = proc->kthread; kt < &proc->kthread[NKT]; kt++)
-            // {
-            //     // printf("acquire &kt->ktlock 1 in wait\n");
-            //     acquire(&kt->ktlock);
-            //     if(kt->ktstate == KT_ZOMBIE)
-            //     {
-            //         freekthread(kt);
-            //     }
-            //     // printf("release &kt->ktlock 1 in wait\n");
-            //     release(&kt->ktlock);
-            // } 
             if (pp->parent == p)
             {
                 // make sure the child isn't still in exit() or swtch().
-                // printf("acquire &pp->lock in wait\n");
                 acquire(&pp->lock);
 
                 havekids = 1;
@@ -489,34 +419,28 @@ int wait(uint64 addr)
                     if (addr != 0 && copyout(p->pagetable, addr, (char *)&pp->xstate,
                                              sizeof(pp->xstate)) < 0)
                     {
-                        printf("release 1 &pp->lock: %p in wait\n", &pp->lock);
                         release(&pp->lock);
-                        printf("release 1 &wait_lock: %p in wait\n", &wait_lock);
                         release(&wait_lock);
                         return -1;
                     }
                     freeproc(pp);
-                    printf("release 2 &pp->lock: %p in wait\n", &pp->lock);
                     release(&pp->lock);
-                    printf("release 2 &wait_lock: %p in wait\n", &wait_lock);
                     release(&wait_lock);
                     return pid;
                 }
-                printf("release 3 &pp->lock: %p in wait\n", &pp->lock);
                 release(&pp->lock);
             }                       
         }
 
         // No point waiting if we don't have any children.
-        if (!havekids || killed(p) || kt_killed(p->kthread))
+        if (!havekids || killed(p))
         {
-            // printf("release &wait_lock 3 in wait\n");
             release(&wait_lock);
             return -1;
         }
 
         // Wait for a child to exit.
-        sleep(p, &wait_lock); // DOC: wait-sleep
+        sleep(p->kthread, &wait_lock); // DOC: wait-sleep
     }
 }
 
@@ -529,41 +453,26 @@ int wait(uint64 addr)
 //    via swtch back to the scheduler.
 void scheduler(void)
 {
-    // printf("in scheduler\n");
-    //  struct proc *p = myproc();
-    //  printf("in scheduler after myproc: %p\n", p);
     struct cpu *c = mycpu();
-    // printf("my cpu context: %p\n", c->context);
     struct proc *p;
     struct kthread *kt;
-    // printf("in scheduler after mycpu\n");
     c->kt = 0;
-    // printf("in scheduler before for\n");
     for (;;)
     {
-        printf("in infinit loop\n");
         // Avoid deadlock by ensuring that devices can interrupt.
         intr_on();
-        // printf("in scheduler in first for\n");
-        // acquire(&p->lock);
         for (p = proc; p < &proc[NPROC]; p++)
         {
-            printf("in for 1 in scheduler\n");
-            for (kt = proc->kthread; kt < &proc->kthread[NKT]; kt++)
+            for (kt = p->kthread; kt < &p->kthread[NKT]; kt++)
             {
-                printf("in for 1 in scheduler\n");
-                printf("acquire &kt->ktlock: %p in scheduler\n", &kt->ktlock);
                 acquire(&kt->ktlock);
                 if (kt->ktstate == KT_RUNNABLE)
                 {
-                    // printf("in scheduler in if\n");
                     kt->ktstate = KT_RUNNING;
                     c->kt = kt;
-                    printf("c->context: %p\nc->kt->context: %p\n", c->context, c->kt->context);
                     swtch(&c->context, &c->kt->context);
                     c->kt = 0;
                 }
-                printf("release &kt->ktlock: %p in scheduler\n", &kt->ktlock);
                 release(&kt->ktlock);
             }
         }
@@ -579,16 +488,14 @@ void scheduler(void)
 // there's no process.
 void sched(void)
 {
-    // printf("in sched\n");
     int intena;
-    // struct proc *p = myproc();
     struct kthread *kt = mykthread();
 
-    if (!holding(&kt->ktlock)) //(!holding(&p->lock))
+    if (!holding(&kt->ktlock))
         panic("sched p->lock");
     if (mycpu()->noff != 1)
         panic("sched locks");
-    if (kt->ktstate == KT_RUNNING) //(p->kthread->ktstate == KT_RUNNING)
+    if (kt->ktstate == KT_RUNNING)
         panic("sched running");
     if (intr_get())
         panic("sched interruptible");
@@ -601,34 +508,19 @@ void sched(void)
 // Give up the CPU for one scheduling round.
 void yield(void)
 {
-    // printf("in yield\n");
     struct kthread *kt = mykthread();
-    printf("acquire &kt->ktlock: %p in yield\n", &kt->ktlock);
     acquire(&kt->ktlock);
     kt->ktstate = KT_RUNNABLE;
     sched();
-    printf("release &kt->ktlock: %p in yield\n", &kt->ktlock);
     release(&kt->ktlock);
 }
-// void yield(void)
-// {
-//     printf("in yield\n");
-//     struct proc *p = myproc();
-//     acquire(&p->lock);
-//     p->state = RUNNABLE;
-//     sched();
-//     release(&p->lock);
-// }
-
 // A fork child's very first scheduling by scheduler()
 // will swtch to forkret.
 void forkret(void)
 {
-    // printf("in forkret\n");
     static int first = 1;
 
-    // Still holding p->lock from scheduler.
-    printf("release &mykthread()->ktlock: %p in forkret\n", &mykthread()->ktlock);
+    // Still holding kt->lock from scheduler.
     release(&mykthread()->ktlock);
 
     if (first)
@@ -642,30 +534,11 @@ void forkret(void)
 
     usertrapret();
 }
-// {
-//     printf("in forkret\n");
-//     static int first = 1;
-
-//     // Still holding p->lock from scheduler.
-//     release(&myproc()->lock);
-
-//     if (first)
-//     {
-//         // File system initialization must be run in the context of a
-//         // regular process (e.g., because it calls sleep), and thus cannot
-//         // be run from main().
-//         first = 0;
-//         fsinit(ROOTDEV);
-//     }
-
-//     usertrapret();
-// }
 
 // Atomically release lock and sleep on chan.
 // Reacquires lock when awakened.
 void sleep(void *chan, struct spinlock *lk)
 {
-    // printf("in sleep\n");
     struct kthread *kt = mykthread();
 
     // Must acquire p->lock in order to
@@ -674,9 +547,7 @@ void sleep(void *chan, struct spinlock *lk)
     // guaranteed that we won't miss any wakeup
     // (wakeup locks p->lock),
     // so it's okay to release lk.
-    printf("acquire &kt->ktlock: %p in sleep\n", &kt->ktlock);
     acquire(&kt->ktlock); // DOC: sleeplock1
-    printf("release lk(lock parameter): %p in sleep\n", &lk);
     release(lk);
 
     // Go to sleep.
@@ -689,171 +560,57 @@ void sleep(void *chan, struct spinlock *lk)
     kt->ktchan = 0;
 
     // Reacquire original lock.
-    printf("release &kt->ktlock: %p in sleep\n", &kt->ktlock);
     release(&kt->ktlock);
-    printf("acquire lk(lock parameter): %p in sleep\n", &lk);
     acquire(lk);
 }
-
-// void sleep(void *chan, struct spinlock *lk)
-// {
-//     printf("in sleep\n");
-//     struct proc *p = myproc();
-
-//     // Must acquire p->lock in order to
-//     // change p->state and then call sched.
-//     // Once we hold p->lock, we can be
-//     // guaranteed that we won't miss any wakeup
-//     // (wakeup locks p->lock),
-//     // so it's okay to release lk.
-
-//     acquire(&p->lock); // DOC: sleeplock1
-//     release(lk);
-
-//     // Go to sleep.
-//     p->chan = chan;
-//     p->state = SLEEPING;
-
-//     sched();
-
-//     // Tidy up.
-//     p->chan = 0;
-
-//     // Reacquire original lock.
-//     release(&p->lock);
-//     acquire(lk);
-// }
 
 // Wake up all processes sleeping on chan.
 // Must be called without any p->lock.
 void wakeup(void *chan)
 {
-    // printf("in wakeup\n");
     struct proc *p;
     struct kthread *kt;
     for (p = proc; p < &proc[NPROC]; p++)
     {
-        // printf("in wakeup in for 1\n");
-        // if (p != myproc())
-        //{
-        // printf("in wakeup in if 1\n");
         for (kt = p->kthread; kt < &p->kthread[NKT]; kt++)
         {
-            // printf("in wakeup  in for 2\n");
-            // printf("kthread in wakeup: %d\n", kt);
             if (kt != mykthread())
             {
-                // printf("in wakeup in first if 2\n");
-                printf("acquire &kt->ktlock: %p in wakeup\n", &kt->ktlock);
                 acquire(&kt->ktlock);
                 if (kt->ktstate == KT_SLEEPING && kt->ktchan == chan)
                 {
-                    // printf("waking up\n");
-                    //  printf("in wakeup in second if\n");
                     kt->ktstate = KT_RUNNABLE;
                 }
-                printf("release &kt->ktlock: %p in wakeup\n", &kt->ktlock);
                 release(&kt->ktlock);
             }
             //}
         }
     }
 }
-// void wakeup(void *chan)
-// {
-//     printf("in wakeup\n");
-//     struct proc *p;
-
-//     for (p = proc; p < &proc[NPROC]; p++)
-//     {
-//         printf("in wakeup in for\n");
-//         if (p != myproc())
-//         {
-//             printf("in wakeup in first if\n");
-//             acquire(&p->lock);
-//             if (p->state == SLEEPING && p->chan == chan)
-//             {
-//                 printf("in wakeup in second if\n");
-//                 p->state = RUNNABLE;
-//             }
-//             release(&p->lock);
-//         }
-//     }
-// }
-
-// Kill the process with the given pid.
-// The victim won't exit until it tries to return
-// to user space (see usertrap() in trap.c).
-// int kill(int ktid)
-// {
-//     // printf("in kill\n");
-//     //struct proc *p = myproc();
-//     struct kthread *kt;
-
-//     for (kt = proc->kthread; kt < &proc->kthread[NKT]; kt++)
-//     {
-//         acquire(&kt->ktlock);
-//         if (kt->ktid == ktid)
-//         {
-//             kt->ktkilled = 1;
-//             if (kt->ktstate == KT_SLEEPING)
-//             {
-//                 // Wake process from sleep().
-//                 kt->ktstate = KT_RUNNABLE;
-//             }
-//             //release(&kt->lock);
-//             // task2
-//             // for (struct kthread *kt = p->kthread; kt < &p->kthread[NKT]; kt++)
-//             // {
-//             //     acquire(&p->kthread->ktlock);
-//             //     if (kt->ktstate == KT_SLEEPING)
-//             //     {
-//             //         kt->ktstate = KT_RUNNABLE;
-//             //     }
-//             //     release(&p->kthread->ktlock);
-//             // }
-
-//             return 0;
-//         }
-//         release(&kt->ktlock);
-//     }
-//     return -1;
-// }
 
 int kill(int pid)
 {
-    // printf("in kill\n");
     struct proc *p;
 
     for (p = proc; p < &proc[NPROC]; p++)
     {
-        printf("acquire &p->lock: %p in kill\n", &p->lock);
         acquire(&p->lock);
         if (p->pid == pid)
         {
             p->killed = 1;
-            // if (p->state == SLEEPING)
-            // {
-            //     // Wake process from sleep().
-            //     p->state = RUNNABLE;
-            // }
-            // release(&p->lock);
             // task2
             for (struct kthread *kt = p->kthread; kt < &p->kthread[NKT]; kt++)
             {
-                printf("acquire &p->kthread->ktlock: %p in kill\n", &p->kthread->ktlock);
                 acquire(&p->kthread->ktlock);
                 if (kt->ktstate == KT_SLEEPING)
                 {
                     kt->ktstate = KT_RUNNABLE;
                 }
-                printf("release &p->kthread->ktlock: %p in kill\n", &p->kthread->ktlock);
                 release(&p->kthread->ktlock);
             }
 
             return 0;
         }
-        printf("release &p->lock: %p in kill\n", &p->lock);
         release(&p->lock);
     }
     return -1;
@@ -861,36 +618,27 @@ int kill(int pid)
 
 void setkilled(struct proc *p)
 {
-    // printf("in setkilled\n");
-    // printf("acquire &p->lock in setkilled\n");
     acquire(&p->lock);
     p->killed = 1;
-    // printf("release &p->lock in setkilled\n");
     release(&p->lock);
 }
 
 int killed(struct proc *p)
 {
-    // printf("in killed\n");
     int k;
 
-    printf("acquire &p->lock: %p in killed\n", &p->lock);
     acquire(&p->lock);
     k = p->killed;
-    printf("release &p->lock: %p in killed\n", &p->lock);
     release(&p->lock);
     return k;
 }
 
 int kt_killed(struct kthread *kt)
 {
-    // printf("in killed\n");
     int k;
 
-    // printf("acquire &p->lock in killed\n");
     acquire(&kt->ktlock);
     k = kt->ktkilled;
-    // printf("release &p->lock in killed\n");
     release(&kt->ktlock);
     return k;
 }
@@ -900,7 +648,6 @@ int kt_killed(struct kthread *kt)
 // Returns 0 on success, -1 on error.
 int either_copyout(int user_dst, uint64 dst, void *src, uint64 len)
 {
-    // printf("in either_copyout\n");
     struct proc *p = myproc();
     if (user_dst)
     {
@@ -918,7 +665,6 @@ int either_copyout(int user_dst, uint64 dst, void *src, uint64 len)
 // Returns 0 on success, -1 on error.
 int either_copyin(void *dst, int user_src, uint64 src, uint64 len)
 {
-    // printf("in either_copyin\n");
     struct proc *p = myproc();
     if (user_src)
     {
@@ -936,7 +682,6 @@ int either_copyin(void *dst, int user_src, uint64 src, uint64 len)
 // No lock to avoid wedging a stuck machine further.
 void procdump(void)
 {
-    // printf("in procdump\n");
     static char *ktstates[] = {
         [KT_UNUSED] "unused",
         [KT_USED] "used",
@@ -961,29 +706,3 @@ void procdump(void)
         printf("\n");
     }
 }
-// void procdump(void)
-// {
-//     printf("in procdump\n");
-//     static char *states[] = {
-//         [UNUSED] "unused",
-//         [USED] "used",
-//         [SLEEPING] "sleep ",
-//         [RUNNABLE] "runble",
-//         [RUNNING] "run   ",
-//         [ZOMBIE] "zombie"};
-//     struct proc *p;
-//     char *state;
-
-//     printf("\n");
-//     for (p = proc; p < &proc[NPROC]; p++)
-//     {
-//         if (p->state == UNUSED)
-//             continue;
-//         if (p->state >= 0 && p->state < NELEM(states) && states[p->state])
-//             state = states[p->state];
-//         else
-//             state = "???";
-//         printf("%d %s %s", p->pid, state, p->name);
-//         printf("\n");
-//     }
-// }
