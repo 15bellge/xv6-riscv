@@ -95,7 +95,7 @@ int allocpid()
     pid = nextpid;
     nextpid = nextpid + 1;
     release(&pid_lock);
-
+    // printf("pid: %d\n", pid);
     return pid;
 }
 
@@ -121,6 +121,7 @@ allocproc(void)
             release(&p->lock);
         }
     }
+    // printf("unused not found\n");
     return 0;
 
 found:
@@ -146,7 +147,7 @@ found:
     }
 
     allockthread(p);
-
+    // printf("p: %p\n", p);
     return p;
 }
 
@@ -284,7 +285,7 @@ int growproc(int n)
 // Sets up child kernel stack to return as if from fork() system call.
 int fork(void)
 {
-    // printf("in fork\n");
+    printf("in fork\n");
     int i, pid;
     struct proc *np;
     struct proc *p = myproc();
@@ -293,6 +294,7 @@ int fork(void)
     // Allocate process.
     if ((np = allocproc()) == 0)
     {
+        printf("failing fork\n");
         return -1;
     }
 
@@ -353,9 +355,13 @@ void reparent(struct proc *p)
 // until its parent calls wait().
 void exit(int status)
 {
-    printf("in exit\n");
+    // printf("in exit\n");
     struct proc *p = myproc();
     struct kthread *mkt = mykthread();
+
+    // acquire(&mkt->ktlock);
+    // int mktid = mkt->ktid;
+    // release(&mkt->ktlock);
 
     if (p == initproc)
         panic("init exiting");
@@ -368,8 +374,8 @@ void exit(int status)
             int ktid = kt->ktid;
             release(&kt->ktlock);
             kthread_kill(ktid);
-            printf("in exit after kthread_kill\n");
-            // kthread_join(ktid, status);
+            // printf("in exit after kthread_kill\n");
+            // kthread_join(mktid, status);
             // printf("in exit after kthread_join\n");
         }
     }
@@ -399,10 +405,11 @@ void exit(int status)
     acquire(&p->lock);
     p->xstate = status;
     p->state = ZOMBIE;
+    struct kthread *kt = p->kthread;
     release(&p->lock);
 
     // task2
-    acquire(&p->kthread->ktlock);
+    acquire(&kt->ktlock);
     p->kthread->ktstate = KT_ZOMBIE;
 
     release(&wait_lock);

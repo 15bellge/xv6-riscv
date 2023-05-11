@@ -29,6 +29,7 @@ int exec(char *path, char **argv)
     struct proghdr ph;
     pagetable_t pagetable = 0, oldpagetable;
     struct proc *p = myproc();
+
     struct kthread *kt = mykthread();
 
     begin_op();
@@ -132,29 +133,29 @@ int exec(char *path, char **argv)
     kt->trapframe->sp = sp;         // initial stack pointer
     proc_freepagetable(oldpagetable, oldsz);
 
+    // printf("at the end of exec\n");
     acquire(&p->lock);
-    printf("at the end of exec, pid: %d\n", p->pid);
     if (p->exec_flag == 0)
     {
-        printf("at the end of exec in if 1, pid: %d\n", p->pid);
+        // printf("at the end of exec in if 1\n");
         p->exec_flag = 1;
         release(&p->lock);
         for (struct kthread *mkt = p->kthread; mkt < &p->kthread[NKT]; mkt++)
         {
             if (kt != mkt)
             {
-                printf("at the end of exec in if 2, pid: %d\n", p->pid);
+                // printf("at the end of exec in if 2\n");
                 acquire(&mkt->ktlock);
                 int ktid = mkt->ktid;
                 release(&mkt->ktlock);
                 kthread_kill(ktid);
-                printf("at the end of exec after kthread_kill, pid: %d\n", p->pid);
+                // printf("at the end of exec after kthread_kill\n");
             }
-            printf("at the end of exec after if 2, pid: %d\n", p->pid);
+            // printf("at the end of exec after if 2\n");
         }
     }
     else{
-        printf("at the end of exec in else, pid: %d\n", p->pid);
+        // printf("at the end of exec in else\n");
         release(&p->lock);
         acquire(&kt->ktlock);
         int ktid = kt->ktid;

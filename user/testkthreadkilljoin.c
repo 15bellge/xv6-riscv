@@ -1,3 +1,5 @@
+#include "kernel/param.h"
+#include "kernel/types.h"
 #include "user.h"
 
 void* fib1000000000(){
@@ -41,7 +43,7 @@ int main(int argc, char** argv){
     int returned_status;
     int tid = kthread_create(fib1000000000,memory,4000);
     kthread_kill(tid);
-    if(kthread_join(tid,&returned_status) != 0){
+    if(kthread_join(tid, &returned_status) != 0){
         fprintf(2,"[ERROR] kthread_join\n");
         return -1;
     }

@@ -1,3 +1,5 @@
+#include "kernel/param.h"
+#include "kernel/types.h"
 #include "user.h"
 
 void* func(){

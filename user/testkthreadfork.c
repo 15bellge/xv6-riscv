@@ -1,3 +1,5 @@
+#include "kernel/param.h"
+#include "kernel/types.h"
 #include "user.h"
 
 
@@ -53,6 +55,6 @@ int main(int argc,char** argv){
         fprintf(2,"[ERROR] couldn't start a thread\n");
         return 1;
     }
-    kthread_join(tid,&thread_status);
+    kthread_join(tid, &thread_status);
     return 0;
 }

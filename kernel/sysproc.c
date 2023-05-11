@@ -134,6 +134,6 @@ uint64 sys_kthread_join(void)
     argint(0, &ktid);
     argint(1, &ktstatus);
 
-    return kthread_join(ktid, ktstatus);
+    return kthread_join(ktid, &ktstatus);
 
 }

@@ -1,4 +1,7 @@
+#include "kernel/param.h"
+#include "kernel/types.h"
 #include "user.h"
+
 
 void* func(){
     kthread_exit(0);

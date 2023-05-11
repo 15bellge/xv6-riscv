@@ -806,6 +806,7 @@ killstatus(char *s)
     }
     sleep(1);
     kill(pid1);
+    printf("in killstatus before wait\n");
     wait(&xst);
     if(xst != -1) {
        printf("%s: status should be -1\n", s);
