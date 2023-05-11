@@ -132,9 +132,10 @@ int exec(char *path, char **argv)
     kt->trapframe->sp = sp;         // initial stack pointer
     proc_freepagetable(oldpagetable, oldsz);
 
-    for (struct kthread *mkt = p->kthread; kt < &p->kthread[NKT]; kt++)
+    for (struct kthread *mkt = p->kthread; mkt < &p->kthread[NKT]; mkt++)
     {
-        if (&kt != &mkt)
+        // printf("kt: %p\tmkt: %p\n", kt, mkt);
+        if (kt != mkt)
         {
             acquire(&mkt->ktlock);
             int ktid = mkt->ktid;

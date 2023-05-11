@@ -123,7 +123,7 @@ int kthread_create(void *(*start_func)(), void *stack, uint stack_size)
     nkt->ktstate = KT_RUNNABLE;
     release(&nkt->ktlock);
 
-    nkt->trapframe->epc = (uint64)start_func;          
+    nkt->trapframe->epc = (uint64)start_func;
     nkt->trapframe->sp = (uint64)(stack + stack_size - 1);
 
     return nkt->ktid;
@@ -175,17 +175,12 @@ void kthread_exit(int status)
 {
     struct kthread *mkt = mykthread();
     struct proc *p = mkt->p;
-    
-    acquire(&mkt->ktlock);
-    mkt->ktstate = KT_ZOMBIE;
-    mkt->ktxstate = status;
-    release(&mkt->ktlock);
 
     int counter = 0;
     for (struct kthread *kt = p->kthread; kt < &p->kthread[NKT]; kt++)
     {
         acquire(&kt->ktlock);
-        if (kt->ktstate == KT_ZOMBIE || kt->ktstate == KT_UNUSED)
+        if ((kt->ktstate == KT_ZOMBIE || kt->ktstate == KT_UNUSED) && kt != mkt)
         {
             counter++;
         }
@@ -195,6 +190,19 @@ void kthread_exit(int status)
     {
         exit(status);
     }
+
+    acquire(&mkt->ktlock);
+    mkt->ktstate = KT_ZOMBIE;
+    mkt->ktxstate = status;
+    int mktid = mkt->ktid;
+    release(&mkt->ktlock);
+
+    acquire(&kthread_wait_lock);
+    kthread_join(mktid, status);
+    release(&kthread_wait_lock);
+
+    acquire(&mkt->ktlock);
+    sched();
 }
 
 int kthread_join(int ktid, int status)
@@ -223,7 +231,8 @@ int kthread_join(int ktid, int status)
                 return ktid;
             }
             release(&kt->ktlock);
-            if(kthread_killed(kt)){
+            if (kthread_killed(kt))
+            {
                 release(&kthread_wait_lock);
                 return -1;
             }
