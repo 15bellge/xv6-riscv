@@ -106,6 +106,7 @@ int allocpid()
 static struct proc *
 allocproc(void)
 {
+    // printf("in allocproc\n");
     struct proc *p;
 
     for (p = proc; p < &proc[NPROC]; p++)
@@ -125,6 +126,7 @@ allocproc(void)
 found:
     p->pid = allocpid();
     p->state = USED;
+    p->exec_flag = 0;
 
     // Allocate a trapframe page.
     if ((p->base_trapframes = (struct trapframe *)kalloc()) == 0)
@@ -156,7 +158,8 @@ freeproc(struct proc *p)
 {
     for (struct kthread *kt = p->kthread; kt < &p->kthread[NKT]; kt++)
     {
-        freekthread(kt);
+        if(kt != mykthread())
+            freekthread(kt);
     }
     if (p->base_trapframes)
         kfree((void *)p->base_trapframes);
@@ -172,6 +175,7 @@ freeproc(struct proc *p)
     p->killed = 0;
     p->xstate = 0;
     p->state = UNUSED;
+    p->exec_flag = 0;
 }
 
 // Create a user page table for a given process, with no user memory,
@@ -280,6 +284,7 @@ int growproc(int n)
 // Sets up child kernel stack to return as if from fork() system call.
 int fork(void)
 {
+    // printf("in fork\n");
     int i, pid;
     struct proc *np;
     struct proc *p = myproc();
@@ -348,6 +353,7 @@ void reparent(struct proc *p)
 // until its parent calls wait().
 void exit(int status)
 {
+    // printf("in exit\n");
     struct proc *p = myproc();
     struct kthread *mkt = mykthread();
 
@@ -362,7 +368,9 @@ void exit(int status)
             int ktid = kt->ktid;
             release(&kt->ktlock);
             kthread_kill(ktid);
+            // printf("in exit after kthread_kill\n");
             kthread_join(ktid, status);
+            // printf("in exit after kthread_join\n");
         }
     }
     
@@ -408,6 +416,7 @@ void exit(int status)
 // Return -1 if this process has no children.
 int wait(uint64 addr)
 {
+    // printf("in wait\n");
     struct proc *pp;
     int havekids, pid;
     struct proc *p = myproc();
@@ -466,6 +475,7 @@ int wait(uint64 addr)
 //    via swtch back to the scheduler.
 void scheduler(void)
 {
+    // printf("in scheduler\n");
     struct cpu *c = mycpu();
     struct proc *p;
     struct kthread *kt;
@@ -501,6 +511,7 @@ void scheduler(void)
 // there's no process.
 void sched(void)
 {
+    // printf("in sched\n");
     int intena;
     struct kthread *kt = mykthread();
 
@@ -514,8 +525,11 @@ void sched(void)
         panic("sched interruptible");
 
     intena = mycpu()->intena;
+    // printf("in sched before swtch\n");
     swtch(&mykthread()->context, &mycpu()->context);
+    // printf("in sched after swtch\n");
     mycpu()->intena = intena;
+    // printf("in sched end\n");
 }
 
 // Give up the CPU for one scheduling round.
@@ -552,6 +566,7 @@ void forkret(void)
 // Reacquires lock when awakened.
 void sleep(void *chan, struct spinlock *lk)
 {
+    // printf("in sleep\n");
     struct kthread *kt = mykthread();
 
     // Must acquire p->lock in order to
@@ -566,21 +581,23 @@ void sleep(void *chan, struct spinlock *lk)
     // Go to sleep.
     kt->ktchan = chan;
     kt->ktstate = KT_SLEEPING;
-
+    // printf("in sleep before sched\n");
     sched();
-
+    // printf("in sleep after sched\n");
     // Tidy up.
     kt->ktchan = 0;
 
     // Reacquire original lock.
     release(&kt->ktlock);
     acquire(lk);
+    // printf("in sleep end\n");
 }
 
 // Wake up all processes sleeping on chan.
 // Must be called without any p->lock.
 void wakeup(void *chan)
 {
+    // printf("in wakeup\n");
     struct proc *p;
     struct kthread *kt;
     for (p = proc; p < &proc[NPROC]; p++)
@@ -596,13 +613,13 @@ void wakeup(void *chan)
                 }
                 release(&kt->ktlock);
             }
-            //}
         }
     }
 }
 
 int kill(int pid)
 {
+    // printf("in kill\n");
     struct proc *p;
 
     for (p = proc; p < &proc[NPROC]; p++)
