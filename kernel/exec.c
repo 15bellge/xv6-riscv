@@ -132,16 +132,34 @@ int exec(char *path, char **argv)
     kt->trapframe->sp = sp;         // initial stack pointer
     proc_freepagetable(oldpagetable, oldsz);
 
-    for (struct kthread *mkt = p->kthread; mkt < &p->kthread[NKT]; mkt++)
+    printf("at the end of exec\n");
+    acquire(&p->lock);
+    if (p->exec_flag == 0)
     {
-        // printf("kt: %p\tmkt: %p\n", kt, mkt);
-        if (kt != mkt)
+        printf("at the end of exec in if 1\n");
+        p->exec_flag = 1;
+        release(&p->lock);
+        for (struct kthread *mkt = p->kthread; mkt < &p->kthread[NKT]; mkt++)
         {
-            acquire(&mkt->ktlock);
-            int ktid = mkt->ktid;
-            release(&mkt->ktlock);
-            kthread_kill(ktid);
+            if (kt != mkt)
+            {
+                printf("at the end of exec in if 2\n");
+                acquire(&mkt->ktlock);
+                int ktid = mkt->ktid;
+                release(&mkt->ktlock);
+                kthread_kill(ktid);
+                printf("at the end of exec after kthread_kill\n");
+            }
+            printf("at the end of exec after if 2\n");
         }
+    }
+    else{
+        printf("at the end of exec in else\n");
+        release(&p->lock);
+        acquire(&kt->ktlock);
+        int ktid = kt->ktid;
+        release(&kt->ktlock);
+        kthread_exit(ktid);        
     }
 
     return argc; // this ends up in a0, the first argument to main(argc, argv)
