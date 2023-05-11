@@ -353,7 +353,7 @@ void reparent(struct proc *p)
 // until its parent calls wait().
 void exit(int status)
 {
-    // printf("in exit\n");
+    printf("in exit\n");
     struct proc *p = myproc();
     struct kthread *mkt = mykthread();
 
@@ -368,8 +368,8 @@ void exit(int status)
             int ktid = kt->ktid;
             release(&kt->ktlock);
             kthread_kill(ktid);
-            // printf("in exit after kthread_kill\n");
-            kthread_join(ktid, status);
+            printf("in exit after kthread_kill\n");
+            // kthread_join(ktid, status);
             // printf("in exit after kthread_join\n");
         }
     }

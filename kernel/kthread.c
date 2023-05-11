@@ -108,7 +108,7 @@ void freekthread(struct kthread *kt)
     kt->ktkilled = 0;
     kt->ktxstate = 0;
     kt->ktstate = KT_UNUSED;
-    kt->p = 0;
+    // kt->p = 0;
 }
 
 int kthread_create(void *(*start_func)(), void *stack, uint stack_size)
