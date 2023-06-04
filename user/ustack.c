@@ -1,84 +1,80 @@
 #include "ustack.h"
 
-// typedef long Align;
+struct Header
+{
+    uint len;
+    uint dealloc_page;
+    struct header *prev;
+};
 
-// union header
-// {
-//     struct
-//     {
-//         union header *ptr;
-//         uint size;
-//     } s;
-//     Align x;
-// };
-
-// typedef union header Header;
-
-// static Header base;
-// static Header *freep;
+static struct Header *header_ptr = 0;
+static struct Header *base = 0;
 static char *stack_ptr;
-
-// static Header *
-// morecore(uint nu)
-// {
-//     char *p;
-//     Header *hp;
-
-//     if (nu < 4096)
-//         nu = 4096;
-//     p = sbrk(nu * sizeof(Header));
-//     if (p == (char *)-1)
-//         return 0;
-//     hp = (Header *)p;
-//     hp->s.size = nu;
-//     free((void *)(hp + 1));
-//     return freep;
-// }
+static char *page_ptr;
 
 void *ustack_malloc(uint len)
 {
-    // Align the size to a multiple of sizeof(uint)
-    uint size = (len + sizeof(uint) - 1) & ~(sizeof(uint) - 1);
+    struct Header *hp;
+    char *page;
+
     if (len > MAX_ALLOC)
     {
-        return -1;
+        return (void *)-1;
     }
-    // If stack_ptr is not set or the remaining space is not enough, request a new page
-    if (stack_ptr == 0 || (stack_ptr - (char *)sbrk(0)) < (int)(size + sizeof(uint)))
+
+    if (header_ptr == base)
     {
-        char *page = sbrk(PGSIZE);
+        page = sbrk(PGSIZE);
         if (page == (char *)-1)
         {
-            return -1; // Failed to allocate memory
+            return (void *)-1;
         }
-        stack_ptr = page;
+        page_ptr = page + PGSIZE;
+        hp = (struct Header *)page;
+        hp->len = len;
+        hp->prev = base;
+        stack_ptr = (char *)hp + len;
+        header_ptr = hp;
+        return (void *)stack_ptr;
     }
-    // Store the current stack pointer in the allocated memory block
-    char *ptr = stack_ptr;
-    *((uint *)ptr) = (uint)(stack_ptr - (char *)sbrk(0));
-    stack_ptr += size + sizeof(uint);
 
-    // Return a pointer to the allocated memory block (excluding the size field)
-    return (void *)(ptr + sizeof(uint));
+    if (page_ptr - page_ptr < len)
+    {
+        page = sbrk(PGSIZE);
+        if (page == (char *)-1)
+        {
+            return (void *)-1;
+        }
+        page_ptr = page + PGSIZE;
+        hp->len = len;
+        hp->prev = header_ptr;
+        stack_ptr = (char *)hp + len;
+        header_ptr = hp;
+        return (void *)stack_ptr;
+    }
+
+    else
+    {
+        hp = (struct Header *)stack_ptr;
+        hp->len = len;
+        hp->prev = header_ptr;
+        stack_ptr = (char *)hp + len;
+        header_ptr = hp;
+        return (void *)stack_ptr;
+    }
 }
 
-int ustack_free(void *ptr)
+int ustack_free(void)
 {
-    if (ptr == 0)
-    {
-        return -1;
+    char *page;
+    int header_size = header_ptr->len;
+    header_ptr = header_ptr->prev;
+    if(header_ptr->dealloc_page == 1){
+        page = sbrk(-PGSIZE);
+        if(p==(char*)-1){
+            return -1;
+        }
+        page_ptr = page_ptr - PGSIZE;
     }
-
-    // Get the size of the allocated memory block from the size field
-    char *block = (char *)ptr - sizeof(uint);
-    uint size = *((uint *)block);
-
-    // Roll back the stack pointer to the previous block
-    stack_ptr = block;
-
-    // If the previous block crosses a page boundary, free the page using a negative sbrk() argument
-    if ((stack_ptr - (char *)sbrk(0)) <= 0 && (stack_ptr - (char *)sbrk(0)) % PGSIZE != 0)
-    {
-        sbrk(-(PGSIZE - ((stack_ptr - (char *)sbrk(0)) % PGSIZE)));
-    }
+    return header_size;
 }

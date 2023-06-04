@@ -6,5 +6,5 @@
 
 #define MAX_ALLOC 512
 
-void* ustack_malloc(uint);
+void* ustack_malloc(uint len);
 int ustack_free(void);
