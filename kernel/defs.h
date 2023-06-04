@@ -33,7 +33,8 @@ void            fileinit(void);
 int             fileread(struct file*, uint64, int n);
 int             filestat(struct file*, uint64 addr);
 int             filewrite(struct file*, uint64, int n);
-
+int             kfileread(struct file*, uint64, int n);
+int             kfilewrite(struct file*, uint64, int n);
 // fs.c
 void            fsinit(int);
 int             dirlink(struct inode*, char*, uint);
@@ -53,6 +54,10 @@ int             readi(struct inode*, int, uint64, uint, uint);
 void            stati(struct inode*, struct stat*);
 int             writei(struct inode*, int, uint64, uint, uint);
 void            itrunc(struct inode*);
+int		        createSwapFile(struct proc* p);
+int	          	readFromSwapFile(struct proc * p, char* buffer, uint placeOnFile, uint size);
+int		        writeToSwapFile(struct proc* p, char* buffer, uint placeOnFile, uint size);
+int		        removeSwapFile(struct proc* p);
 
 // ramdisk.c
 void            ramdiskinit(void);
@@ -106,6 +111,7 @@ void            yield(void);
 int             either_copyout(int user_dst, uint64 dst, void *src, uint64 len);
 int             either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void            procdump(void);
+void            update(void);
 
 // swtch.S
 void            swtch(struct context*, struct context*);
@@ -141,6 +147,10 @@ int             fetchstr(uint64, char*, int);
 int             fetchaddr(uint64, uint64*);
 void            syscall();
 
+// sysfile
+struct inode*	create(char *path, short type, short major, short minor);
+int				isdirempty(struct inode *dp);
+
 // trap.c
 extern uint     ticks;
 void            trapinit(void);
@@ -159,7 +169,7 @@ int             uartgetc(void);
 void            kvminit(void);
 void            kvminithart(void);
 void            kvmmap(pagetable_t, uint64, uint64, uint64, int);
-int             mappages(pagetable_t, uint64, uint64, uint64, int);
+int             mappages(pagetable_t, uint64, uint64, uint64, int, int);
 pagetable_t     uvmcreate(void);
 void            uvmfirst(pagetable_t, uchar *, uint);
 uint64          uvmalloc(pagetable_t, uint64, uint64, int);
@@ -173,6 +183,19 @@ uint64          walkaddr(pagetable_t, uint64);
 int             copyout(pagetable_t, uint64, char *, uint64);
 int             copyin(pagetable_t, char *, uint64, uint64);
 int             copyinstr(pagetable_t, char *, uint64, uint64);
+void            disc_to_ram(uint64, pte_t *, char* , struct proc *, int );
+int             ram_to_disc(struct proc *, int);
+int             find_empty_room_swap(struct proc*);
+int             find_empty_room_ram(struct proc*);
+int             page_index_to_swap(void);
+void            page_fault(uint64 va, pte_t *pte);
+int             setBitsCounter(uint);
+void            counterUpdate(struct proc *);
+int             notFrequentlyUsed_plusAging_algorithm(void);
+int             leastAccessedPage_plusAging_algorithm(void);
+int             secondChanceFIFO_algorithm(void);
+int             time();
+// int             no_algorithm(void);
 
 // plic.c
 void            plicinit(void);
